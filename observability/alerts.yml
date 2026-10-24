@@ -1,0 +1,33 @@
+groups:
+  - name: antibugs
+    rules:
+      # Escenario de fallo del documento (sección 7): si los errores HTTP 5xx superan
+      # el 5% de las peticiones en una ventana de 5 minutos, se dispara la alerta.
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(antibugs_http_requests_total{status_class="5xx"}[5m]))
+            /
+          sum(rate(antibugs_http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: infraestructura
+        annotations:
+          summary: "Tasa de errores 5xx superior al 5% en el backend"
+          description: "Revisar logs en Loki filtrando por trace_id para ubicar si la falla está en red (Frontend → Backend) o en lógica/DB (Backend → MySQL)."
+
+      - alert: BackendDown
+        expr: up{job="antibugs-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "El contenedor backend no responde al scrape de Prometheus"
+
+      - alert: TicketBacklogGrowing
+        expr: antibugs_tickets_total{status="OPEN"} > 50
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Más de 50 tickets abiertos sin asignar durante 30 minutos"

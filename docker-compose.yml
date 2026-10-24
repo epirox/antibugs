@@ -1,0 +1,195 @@
+name: antibugs
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AntiBugs · Sistema de Gestión de Soporte Técnico
+#
+# Servicios principales (sección 6 del documento):
+#   frontend  → NGINX sirviendo el build de React          (puerto 80)
+#   backend   → Laravel 13 API REST (FrankenPHP)           (puerto 8000)
+#   queue     → worker de colas de Laravel (notificaciones)
+#   mysql     → base de datos persistente                  (puerto 3306)
+#   redis     → caché, colas y blacklist de JWT            (puerto 6379)
+#
+# Observabilidad (sección 7), opcional:
+#   docker compose --profile observability up -d
+#   prometheus (9090) · grafana (3000) · loki (3100) · promtail
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-backend-env: &backend-env
+  APP_NAME: AntiBugs
+  APP_ENV: ${APP_ENV:-production}
+  APP_DEBUG: ${APP_DEBUG:-false}
+  APP_KEY: ${APP_KEY}
+  APP_URL: ${APP_URL:-http://localhost}
+  APP_TIMEZONE: ${APP_TIMEZONE:-America/Argentina/Buenos_Aires}
+  LOG_CHANNEL: json
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+  DB_CONNECTION: mysql
+  DB_HOST: mysql
+  DB_PORT: 3306
+  DB_DATABASE: ${DB_DATABASE:-antibugs}
+  DB_USERNAME: ${DB_USERNAME:-antibugs}
+  DB_PASSWORD: ${DB_PASSWORD:-antibugs}
+  REDIS_CLIENT: predis
+  REDIS_HOST: redis
+  REDIS_PORT: 6379
+  CACHE_STORE: redis
+  QUEUE_CONNECTION: redis
+  SESSION_DRIVER: redis
+  JWT_SECRET: ${JWT_SECRET}
+  JWT_TTL: ${JWT_TTL:-60}
+  MAIL_MAILER: ${MAIL_MAILER:-log}
+  FILESYSTEM_DISK: public
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+    image: antibugs/frontend:${IMAGE_TAG:-local}
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [antibugs]
+
+  backend:
+    build:
+      context: ./backend
+    image: antibugs/backend:${IMAGE_TAG:-local}
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "true"
+      SEED_DATABASE: ${SEED_DATABASE:-true}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - backend_storage:/app/storage/app
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks: [antibugs]
+
+  queue:
+    image: antibugs/backend:${IMAGE_TAG:-local}
+    command: ["php", "artisan", "queue:work", "redis", "--tries=3", "--backoff=10", "--max-time=3600"]
+    environment:
+      <<: *backend-env
+      RUN_MIGRATIONS: "false"
+    volumes:
+      - backend_storage:/app/storage/app
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "php artisan queue:monitor redis --max=1000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks: [antibugs]
+
+  mysql:
+    image: mysql:8.4
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-antibugs}
+      MYSQL_USER: ${DB_USERNAME:-antibugs}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-antibugs}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+    networks: [antibugs]
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+    networks: [antibugs]
+
+  # ───────────── Observabilidad (profile: observability) ─────────────
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    profiles: [observability]
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./observability/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on: [backend]
+    restart: unless-stopped
+    networks: [antibugs]
+
+  loki:
+    image: grafana/loki:3.3.2
+    profiles: [observability]
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+    networks: [antibugs]
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    profiles: [observability]
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./observability/promtail.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    restart: unless-stopped
+    networks: [antibugs]
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    profiles: [observability]
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on: [prometheus, loki]
+    restart: unless-stopped
+    networks: [antibugs]
+
+volumes:
+  mysql_data:
+  redis_data:
+  backend_storage:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+
+networks:
+  antibugs:
+    driver: bridge

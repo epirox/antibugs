@@ -1,0 +1,35 @@
+server:
+  http_listen_port: 9080
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Recolecta los logs (stdout/stderr) de todos los contenedores del proyecto.
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: label
+            values: ["com.docker.compose.project=antibugs"]
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(.*)"
+        target_label: container
+    pipeline_stages:
+      # Los logs de Laravel ya son JSON (canal "json" de Monolog): extraemos campos clave.
+      - json:
+          expressions:
+            level: level_name
+            trace_id: context.trace_id
+            message: message
+      - labels:
+          level:
+      - output:
+          source: message
