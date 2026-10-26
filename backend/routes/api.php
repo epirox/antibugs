@@ -43,6 +43,7 @@ Route::prefix('v1')->group(function () {
             Route::post('priorities', [TaxonomyController::class, 'storePriority']);
 
             Route::get('reports/kpis', [ReportController::class, 'kpis']);
+            Route::get('reports/timeline', [ReportController::class, 'timeline']);
             Route::get('reports/export', [ReportController::class, 'export']);
         });
     });

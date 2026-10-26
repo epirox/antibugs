@@ -1,11 +1,13 @@
 import type {
   Category,
   Comment,
+  Kpis,
   LoginResponse,
   Paginated,
   Priority,
   Ticket,
   TicketStatus,
+  Timeline,
   User,
   UserInput,
 } from './types';
@@ -95,5 +97,25 @@ export const api = {
     update: (id: number, body: Partial<UserInput>) =>
       request<{ data: User }>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
     remove: (id: number) => request<void>(`/users/${id}`, { method: 'DELETE' }),
+  },
+
+  reports: {
+    kpis: () => request<{ data: Kpis }>('/reports/kpis'),
+    timeline: (days: number) => request<{ data: Timeline }>(`/reports/timeline?days=${days}`),
+    // Descarga autenticada del CSV (no se puede usar un <a href> porque requiere el Bearer).
+    exportCsv: async () => {
+      const token = tokenStorage.get();
+      const response = await fetch(`${BASE_URL}/reports/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new ApiError(response.status, 'No se pudo exportar');
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/)?.[1] ?? 'tickets.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    },
   },
 };

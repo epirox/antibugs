@@ -32,6 +32,13 @@ El backend ejecuta las migraciones automáticamente y, con `SEED_DATABASE=true`,
 | Técnico | tecnico@antibugs.local | password |
 | Admin | admin@antibugs.local | password |
 
+Para poblar los gráficos de **Estadísticas** con historia de semanas anteriores:
+
+```bash
+docker compose exec backend php artisan antibugs:seed-history            # 45 días de tickets
+docker compose exec backend php artisan antibugs:seed-history --fresh    # regenera desde cero
+```
+
 Con observabilidad:
 
 ```bash
@@ -111,7 +118,7 @@ OPEN ──► ASSIGNED ──► IN_PROGRESS ──► RESOLVED ──► CLOSE
 | POST | `/api/v1/tickets/{id}/comments` | creador o staff |
 | GET | `/api/v1/technicians` | TECHNICIAN / ADMIN (para escalar) |
 | CRUD | `/api/v1/users` · POST `/categories` · POST `/priorities` | ADMIN |
-| GET | `/api/v1/reports/kpis` · `/api/v1/reports/export` (CSV) | ADMIN |
+| GET | `/api/v1/reports/kpis` · `/api/v1/reports/timeline?days=30` · `/api/v1/reports/export` (CSV) | ADMIN |
 
 Ejemplo de cambio de estado:
 

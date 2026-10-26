@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 import type { Role } from './api/types';
 import { Layout } from './components/Layout';
@@ -7,6 +8,9 @@ import { LoginPage } from './pages/LoginPage';
 import { NewTicketPage } from './pages/NewTicketPage';
 import { TicketDetailPage } from './pages/TicketDetailPage';
 import { UsersPage } from './pages/UsersPage';
+
+// La librería de gráficos sólo la usan los admins: se carga bajo demanda.
+const StatsPage = lazy(() => import('./pages/StatsPage').then((m) => ({ default: m.StatsPage })));
 
 function RequireAuth() {
   const { user, loading } = useAuth();
@@ -32,6 +36,14 @@ export default function App() {
               <Route path="tickets/:id" element={<TicketDetailPage />} />
               <Route element={<RequireRole roles={['ADMIN']} />}>
                 <Route path="admin/users" element={<UsersPage />} />
+                <Route
+                  path="admin/stats"
+                  element={
+                    <Suspense fallback={<p className="muted">Cargando estadísticas…</p>}>
+                      <StatsPage />
+                    </Suspense>
+                  }
+                />
               </Route>
             </Route>
           </Route>

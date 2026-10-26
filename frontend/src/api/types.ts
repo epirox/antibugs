@@ -91,6 +91,41 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface TechnicianStats {
+  id: number;
+  name: string;
+  resolved: number;
+  open: number;
+  avgResolutionHours: number | null;
+}
+
+export interface Kpis {
+  total: number;
+  open: number;
+  avgResolutionHours: number | null;
+  createdLast24h: number;
+  byStatus: Partial<Record<TicketStatus, number>>;
+  byCategory: Record<string, number>;
+  byPriority: Record<string, number>;
+  byTechnician: TechnicianStats[];
+}
+
+export interface TimelinePoint {
+  date: string;
+  created: number;
+  resolved: number;
+  closed: number;
+  backlog: number;
+}
+
+export interface Timeline {
+  days: number;
+  from: string;
+  to: string;
+  series: TimelinePoint[];
+  summary: { created: number; resolved: number; avgResolutionHours: number | null };
+}
+
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   OPEN: 'Abierto',
   ASSIGNED: 'Asignado',
