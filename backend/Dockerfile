@@ -35,7 +35,7 @@ RUN sed -i 's/\r$//' /usr/local/bin/entrypoint \
 EXPOSE 8000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
-    CMD wget -qO- http://localhost:8000/up || exit 1
+    CMD wget -qO- http://127.0.0.1:8000/up || exit 1
 
 ENTRYPOINT ["entrypoint"]
 CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
