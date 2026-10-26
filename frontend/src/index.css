@@ -55,6 +55,13 @@ button:hover, .button:hover { background: var(--primary-dark); text-decoration: 
 button:disabled { opacity: .6; cursor: not-allowed; }
 button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
 button.secondary:hover { background: var(--bg); }
+button.small { padding: .3rem .7rem; font-size: .85rem; }
+button.danger { background: var(--error); color: #fff; border-color: var(--error); }
+button.danger:hover { background: #b91c1c; }
+button.secondary.danger { background: transparent; color: var(--error); }
+button.secondary.danger:hover { background: #fef2f2; }
+.row-actions { display: flex; gap: .4rem; justify-content: flex-end; white-space: nowrap; }
+.pagination { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: .5rem; }
 
 label { display: flex; flex-direction: column; gap: .3rem; font-size: .9rem; font-weight: 500; margin-bottom: .9rem; }
 label.checkbox { flex-direction: row; align-items: center; gap: .5rem; }

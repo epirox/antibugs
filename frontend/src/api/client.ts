@@ -7,6 +7,7 @@ import type {
   Ticket,
   TicketStatus,
   User,
+  UserInput,
 } from './types';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1';
@@ -87,7 +88,12 @@ export const api = {
   },
 
   users: {
-    list: (role?: string) => request<Paginated<User>>(`/users${role ? `?role=${role}` : ''}`),
+    list: (params: Record<string, string> = {}) =>
+      request<Paginated<User>>(`/users?${new URLSearchParams(params)}`),
     technicians: () => request<{ data: User[] }>('/technicians'),
+    create: (body: UserInput) => request<{ data: User }>('/users', { method: 'POST', body: JSON.stringify(body) }),
+    update: (id: number, body: Partial<UserInput>) =>
+      request<{ data: User }>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+    remove: (id: number) => request<void>(`/users/${id}`, { method: 'DELETE' }),
   },
 };

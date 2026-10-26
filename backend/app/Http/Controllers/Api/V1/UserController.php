@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Response;
 
 /**
  * CU-A01: gestión de usuarios y roles (sólo ADMIN).
@@ -46,17 +47,25 @@ class UserController extends Controller
 
     public function update(StoreUserRequest $request, User $user): UserResource
     {
-        $user->fill($request->validated())->save();
+        $validated = $request->validated();
+
+        abort_if(
+            $user->id === $request->user()->id && isset($validated['role']) && $validated['role'] !== Role::ADMIN->value,
+            422,
+            'No puede quitarse su propio rol de administrador.'
+        );
+
+        $user->fill($validated)->save();
 
         return new UserResource($user);
     }
 
-    public function destroy(Request $request, User $user): JsonResponse
+    public function destroy(Request $request, User $user): Response
     {
         abort_if($user->id === $request->user()->id, 422, 'No puede eliminar su propio usuario.');
 
         $user->delete();
 
-        return response()->json(status: 204);
+        return response()->noContent();
     }
 }

@@ -13,7 +13,21 @@ export interface User {
   name: string;
   email: string;
   role: Role;
+  createdAt?: string;
 }
+
+export interface UserInput {
+  name: string;
+  email: string;
+  role: Role;
+  password?: string;
+}
+
+export const ROLE_LABELS: Record<Role, string> = {
+  USER: 'Usuario',
+  TECHNICIAN: 'Técnico',
+  ADMIN: 'Administrador',
+};
 
 export interface Category {
   id: number;

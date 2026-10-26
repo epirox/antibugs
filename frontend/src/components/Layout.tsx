@@ -19,6 +19,7 @@ export function Layout() {
         <nav>
           <Link to="/">Dashboard</Link>
           {user?.role === 'USER' && <Link to="/tickets/new">Nuevo ticket</Link>}
+          {user?.role === 'ADMIN' && <Link to="/admin/users">Usuarios</Link>}
         </nav>
         <div className="userbox">
           <span>
