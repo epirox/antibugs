@@ -4,7 +4,7 @@
 
 Plataforma para centralizar el ciclo de vida del soporte técnico con roles (Usuario / Técnico / Administrador), máquina de estados auditada y notificaciones. Trabajo Práctico Final — Programación de Vanguardia 2026.
 
-📚 **Documentación:** [Diseño del sistema](docs/01-diseno-del-sistema.md) · [Casos de prueba](docs/02-casos-de-prueba.md) · [Gestión de usuarios](docs/03-gestion-de-usuarios.md) · [Estadísticas y gráficos](docs/04-estadisticas.md)
+📚 **Documentación:** [Diseño del sistema](docs/01-diseno-del-sistema.md) · [Casos de prueba](docs/02-casos-de-prueba.md) · [Gestión de usuarios](docs/03-gestion-de-usuarios.md) · [Estadísticas y gráficos](docs/04-estadisticas.md) · [Observabilidad y monitoreo](docs/05-observabilidad.md)
 
 ## Stack
 
@@ -47,7 +47,7 @@ Con observabilidad:
 docker compose --profile observability up -d
 ```
 
-Grafana: http://localhost:3000 (admin / admin) con Prometheus y Loki ya provisionados.
+Grafana: http://localhost:3000 (admin / admin). Al entrar se abre el dashboard **AntiBugs · Monitoreo del servicio** ya provisionado: salud del backend, tasa de errores 5xx vs. umbral de alerta, latencia, tickets por estado, backlog y logs con `trace_id` clicable. Detalles en [docs/05-observabilidad.md](docs/05-observabilidad.md).
 
 ## Desarrollo local (sin Docker)
 

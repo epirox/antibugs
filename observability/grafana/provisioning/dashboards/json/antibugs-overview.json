@@ -1,0 +1,256 @@
+{
+  "uid": "antibugs-overview",
+  "title": "AntiBugs · Monitoreo del servicio",
+  "tags": ["antibugs", "soporte"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "type": "row",
+      "title": "Salud del backend",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Backend",
+      "description": "Resultado del último scrape de Prometheus al endpoint /metrics.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 1 },
+      "targets": [{ "refId": "A", "expr": "up{job=\"antibugs-backend\"}" }],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "CAÍDO", "color": "red" }, "1": { "text": "UP", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Tasa de errores 5xx (5 min)",
+      "description": "Porcentaje de respuestas 5xx sobre el total en los últimos 5 minutos. La alerta HighErrorRate se dispara al superar el 5 %.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 4, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(rate(antibugs_http_requests_total{status_class=\"5xx\"}[5m])) / clamp_min(sum(rate(antibugs_http_requests_total[5m])), 1e-9)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 2 }, { "color": "red", "value": 5 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Peticiones / min",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 9, "y": 1 },
+      "targets": [{ "refId": "A", "expr": "60 * sum(rate(antibugs_http_requests_total[5m]))" }],
+      "fieldConfig": { "defaults": { "unit": "reqpm", "decimals": 1, "color": { "mode": "fixed", "fixedColor": "blue" } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Latencia media",
+      "description": "Duración promedio de las peticiones HTTP (suma de ms / cantidad de peticiones) en los últimos 5 minutos.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 14, "y": 1 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(antibugs_http_request_duration_ms_sum[5m])) / clamp_min(sum(rate(antibugs_http_requests_total[5m])), 1e-9)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 300 }, { "color": "red", "value": 1000 }] }
+        },
+        "overrides": []
+      },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Tickets creados (última hora)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 5, "x": 19, "y": 1 },
+      "targets": [{ "refId": "A", "expr": "antibugs_tickets_created_last_hour" }],
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "purple" } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Peticiones por clase de estado HTTP",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        { "refId": "A", "expr": "60 * sum by (status_class) (rate(antibugs_http_requests_total[2m]))", "legendFormat": "{{status_class}}" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqpm", "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 15, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "2xx" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "3xx" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] },
+          { "matcher": { "id": "byName", "options": "4xx" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "5xx" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Tasa de errores 5xx vs umbral de alerta (5 %)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "100 * sum(rate(antibugs_http_requests_total{status_class=\"5xx\"}[5m])) / clamp_min(sum(rate(antibugs_http_requests_total[5m])), 1e-9)",
+          "legendFormat": "errores 5xx"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "thresholdsStyle": { "mode": "line+area" }
+          },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "transparent", "value": null }, { "color": "red", "value": 5 }] },
+          "color": { "mode": "fixed", "fixedColor": "red" }
+        },
+        "overrides": []
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } }
+    },
+    {
+      "type": "row",
+      "title": "Negocio · tickets",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "id": 101,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "Tickets por estado",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 15 },
+      "targets": [{ "refId": "A", "expr": "antibugs_tickets_total", "legendFormat": "{{status}}", "instant": true }],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "color": { "mode": "palette-classic" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "OPEN" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] },
+          { "matcher": { "id": "byName", "options": "ASSIGNED" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "purple" } }] },
+          { "matcher": { "id": "byName", "options": "IN_PROGRESS" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "PENDING_INFO" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "text" } }] },
+          { "matcher": { "id": "byName", "options": "RESOLVED" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] },
+          { "matcher": { "id": "byName", "options": "CLOSED" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "dark-gray" } }] }
+        ]
+      },
+      "options": { "orientation": "horizontal", "displayMode": "gradient", "showUnfilled": true, "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false } }
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Backlog abierto en el tiempo",
+      "description": "Tickets en OPEN + ASSIGNED + IN_PROGRESS + PENDING_INFO. La alerta TicketBacklogGrowing se dispara con más de 50 abiertos (OPEN) durante 30 min.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 15 },
+      "targets": [
+        { "refId": "A", "expr": "sum(antibugs_tickets_total{status=~\"OPEN|ASSIGNED|IN_PROGRESS|PENDING_INFO\"})", "legendFormat": "abiertos" },
+        { "refId": "B", "expr": "antibugs_tickets_total{status=\"RESOLVED\"}", "legendFormat": "resueltos (pendientes de cierre)" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "abiertos" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "resueltos (pendientes de cierre)" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "green" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "type": "row",
+      "title": "Logs (Loki)",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "id": 102,
+      "collapsed": false,
+      "panels": []
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Líneas de log por nivel (backend)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 24 },
+      "targets": [{ "refId": "A", "expr": "sum by (level) (count_over_time({service=\"backend\"}[1m]))", "legendFormat": "{{level}}" }],
+      "fieldConfig": {
+        "defaults": { "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "ERROR" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "red" } }] },
+          { "matcher": { "id": "byName", "options": "WARNING" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "orange" } }] },
+          { "matcher": { "id": "byName", "options": "INFO" }, "properties": [{ "id": "color", "value": { "mode": "fixed", "fixedColor": "blue" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } }
+    },
+    {
+      "id": 11,
+      "type": "logs",
+      "title": "Errores y advertencias del backend",
+      "description": "Cada línea incluye el trace_id: hacé clic en él para ver todos los logs de esa petición.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 7, "w": 16, "x": 8, "y": 24 },
+      "targets": [{ "refId": "A", "expr": "{service=\"backend\", level=~\"ERROR|CRITICAL|WARNING\"}" }],
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "sortOrder": "Descending", "dedupStrategy": "none", "prettifyLogMessage": false }
+    },
+    {
+      "id": 12,
+      "type": "logs",
+      "title": "Peticiones HTTP (http.request)",
+      "description": "Log estructurado por petición: método, ruta, status, duración, usuario y trace_id.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 31 },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "{service=\"backend\"} |= \"http.request\" | json | line_format \"{{.context_method}} /{{.context_path}} → {{.context_status}} ({{.context_duration_ms}} ms) user={{.context_user_id}} trace_id={{.context_trace_id}}\""
+        }
+      ],
+      "options": { "showTime": true, "wrapLogMessage": false, "enableLogDetails": true, "sortOrder": "Descending", "dedupStrategy": "none", "prettifyLogMessage": false }
+    }
+  ]
+}

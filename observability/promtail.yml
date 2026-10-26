@@ -23,13 +23,11 @@ scrape_configs:
         regex: "/(.*)"
         target_label: container
     pipeline_stages:
-      # Los logs de Laravel ya son JSON (canal "json" de Monolog): extraemos campos clave.
+      # Los logs de Laravel ya son JSON (canal "json" de Monolog). Sólo se promueve
+      # `level` a etiqueta; el resto (trace_id, path, status…) queda en la línea
+      # para consultarlo con `| json` en LogQL sin disparar la cardinalidad.
       - json:
           expressions:
             level: level_name
-            trace_id: context.trace_id
-            message: message
       - labels:
           level:
-      - output:
-          source: message
