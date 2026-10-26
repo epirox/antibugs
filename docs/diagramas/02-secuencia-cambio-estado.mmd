@@ -1,0 +1,45 @@
+sequenceDiagram
+    autonumber
+    actor T as Técnico (SPA)
+    participant N as NGINX
+    participant MW as Middleware<br/>TraceId · JWT
+    participant C as TicketController
+    participant R as UpdateTicketStatusRequest
+    participant S as TicketService
+    participant SM as TicketStateMachine
+    participant RP as TicketRepository
+    participant DB as MySQL
+
+    T->>N: PATCH /api/v1/tickets/7/status<br/>{status: IN_PROGRESS, justification: "…"}
+    N->>MW: proxy + X-Trace-Id
+    MW->>MW: valida JWT, resuelve usuario y rol
+    MW->>C: request autenticada
+    C->>R: validar (status ∈ enum, justification ≥ 10 chars)
+    R-->>C: datos validados
+    C->>S: changeStatus(7, ChangeTicketStatusData, actor)
+
+    rect rgb(219, 234, 254)
+        note over S,DB: DB::transaction — atómico
+        S->>RP: lockForUpdate(7)
+        RP->>DB: SELECT … FOR UPDATE
+        DB-->>RP: ticket (OPEN)
+        S->>SM: assertTransition(ticket, IN_PROGRESS, actor)
+        alt rol no autorizado
+            SM-->>S: AuthorizationException
+            S-->>C: ⟵ 403 Forbidden
+        else transición inválida
+            SM-->>S: InvalidStatusTransitionException
+            S-->>C: ⟵ 422 Unprocessable
+        else OK
+            SM-->>S: ✓
+            S->>RP: update(status, assigned_to = actor)
+            RP->>DB: UPDATE tickets
+            S->>DB: INSERT ticket_status_histories<br/>(from, to, actor, justification)
+        end
+    end
+
+    S-->>C: ticket actualizado
+    C-->>MW: TicketResource (JSON)
+    MW->>MW: log http.request {trace_id, status, duration}
+    MW-->>N: 200 + X-Trace-Id
+    N-->>T: {status, summary, allowedTransitions, history…}

@@ -1,0 +1,34 @@
+stateDiagram-v2
+    direction LR
+
+    [*] --> OPEN : usuario crea el ticket<br/>(CU-U01)
+
+    OPEN --> ASSIGNED : técnico/admin asigna
+    OPEN --> IN_PROGRESS : técnico toma el caso
+    ASSIGNED --> IN_PROGRESS : técnico comienza
+    ASSIGNED --> OPEN : devolver a la cola
+    IN_PROGRESS --> PENDING_INFO : falta información del usuario
+    PENDING_INFO --> IN_PROGRESS : usuario responde
+    IN_PROGRESS --> ASSIGNED : escalar a otro técnico
+    IN_PROGRESS --> RESOLVED : técnico registra la solución<br/>(requiere resolution + técnico asignado)
+    RESOLVED --> CLOSED : <b>creador</b> confirma (o admin)
+    RESOLVED --> IN_PROGRESS : usuario rechaza la solución
+    CLOSED --> [*]
+
+    note right of OPEN
+        Toda transición exige
+        <b>justificación escrita</b>
+        y queda en el historial.
+    end note
+
+    note right of CLOSED
+        Estado final:
+        sin transiciones de salida.
+    end note
+
+    classDef trabajo fill:#fef3c7,stroke:#d97706
+    classDef fin fill:#dcfce7,stroke:#059669
+    classDef cerrado fill:#e5e7eb,stroke:#374151
+    class ASSIGNED,IN_PROGRESS,PENDING_INFO trabajo
+    class RESOLVED fin
+    class CLOSED cerrado

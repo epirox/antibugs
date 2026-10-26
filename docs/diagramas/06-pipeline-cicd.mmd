@@ -1,0 +1,49 @@
+flowchart TB
+    DEV["👩‍💻 Desarrollador<br/>git push / pull request"]
+
+    subgraph CI["GitHub Actions · en cada push y PR"]
+        direction LR
+        subgraph B["Backend · Pest"]
+            direction TB
+            B1["composer install"] --> B2["Pint --test<br/>(estilo)"] --> B3["php artisan test<br/>49 tests · SQLite en memoria"]
+        end
+        subgraph F["Frontend · Lint + Build"]
+            direction TB
+            F1["npm ci"] --> F2["oxlint"] --> F3["tsc -b && vite build"]
+        end
+    end
+
+    GATE{"¿todo verde<br/>y rama main?"}
+    FAIL["❌ PR bloqueado<br/>se notifica al autor"]
+
+    subgraph CD["Docker · Build & Push"]
+        direction LR
+        D1["docker build backend<br/>(multi-stage: composer → FrankenPHP)"]
+        D2["docker build frontend<br/>(multi-stage: node → nginx)"]
+        D3["push a GHCR<br/><b>:SHA del commit</b> + :latest"]
+        D1 --> D3
+        D2 --> D3
+    end
+
+    REG[("ghcr.io/epirox/antibugs/<br/>backend · frontend")]
+
+    subgraph ENVS["Entornos"]
+        direction LR
+        E1["Local<br/>php artisan serve + Vite<br/>SQLite"]
+        E2["Compose<br/>imágenes :local<br/>MySQL + Redis"]
+        E3["Producción / demo<br/>imágenes :SHA desde GHCR<br/>.env con secretos reales"]
+    end
+
+    DEV --> CI --> GATE
+    GATE -- "sí" --> CD --> REG
+    GATE -- "no" --> FAIL
+    REG -- "docker compose pull && up -d" --> E3
+    DEV -. "desarrollo diario" .-> E1
+    DEV -. "prueba integrada" .-> E2
+
+    classDef ok fill:#dcfce7,stroke:#059669,color:#0f172a;
+    classDef bad fill:#fee2e2,stroke:#dc2626,color:#0f172a;
+    classDef neutral fill:#f8fafc,stroke:#94a3b8,color:#0f172a;
+    class B1,B2,B3,F1,F2,F3,D1,D2,D3 neutral;
+    class REG,E3 ok;
+    class FAIL bad;

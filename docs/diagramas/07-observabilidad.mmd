@@ -1,0 +1,42 @@
+flowchart TB
+    subgraph REQ["1 · Una petición instrumentada"]
+        direction LR
+        SPA["SPA React"] -- "GET /api/v1/tickets" --> NG["NGINX<br/>reenvía X-Trace-Id"]
+        NG --> MW["AssignTraceId<br/>genera/propaga UUID<br/>Log::shareContext(trace_id)"]
+        MW --> APP["TicketService<br/>log ticket.* con trace_id"]
+        APP --> DB[("MySQL")]
+        MW -. "respuesta + X-Trace-Id" .-> SPA
+    end
+
+    subgraph COL["2 · Recolección"]
+        direction LR
+        subgraph L["Logs"]
+            LOGS["stdout JSON<br/>{message, context.trace_id,<br/>status, duration_ms}"] --> PT["Promtail<br/>label: level"] --> LOKI[("Loki")]
+        end
+        subgraph M["Métricas"]
+            RDS[("Redis<br/>metrics:*")] --> MET["GET /metrics<br/>antibugs_http_requests_total<br/>antibugs_tickets_total…"] -- "scrape 15 s" --> PROM[("Prometheus")]
+            PROM --> AL{{"HighErrorRate<br/>5xx / total > 5 %<br/>durante 5 min"}}
+        end
+    end
+
+    subgraph DX["3 · Visualización y diagnóstico"]
+        direction LR
+        GF["Grafana<br/>dashboard AntiBugs"] -- "clic en trace_id" --> DIAG["Explore: todos los logs<br/>de esa petición"]
+        DIAG --> Q1{"¿hay logs del backend<br/>para ese trace_id?"}
+        Q1 -- "no → 502/504" --> NETF["Falla de red<br/>Frontend → Backend"]
+        Q1 -- "sí, PDOException" --> DBF["Falla Backend → DB"]
+        Q1 -- "sí, excepción de app" --> BUG["Bug de lógica<br/>(file:line en el log)"]
+    end
+
+    MW -- "escribe" --> LOGS
+    MW -- "incrementa contadores" --> RDS
+    LOKI --> GF
+    PROM --> GF
+    AL -- "firing" --> GF
+
+    classDef store fill:#fef3c7,stroke:#d97706,color:#0f172a;
+    classDef alert fill:#fee2e2,stroke:#dc2626,color:#0f172a;
+    classDef ok fill:#dcfce7,stroke:#059669,color:#0f172a;
+    class DB,RDS,LOKI,PROM store;
+    class AL,NETF,DBF,BUG alert;
+    class GF,DIAG ok;

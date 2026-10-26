@@ -1,0 +1,76 @@
+erDiagram
+    USERS {
+        bigint id PK
+        string name
+        string email UK
+        string password
+        enum role "USER | TECHNICIAN | ADMIN"
+        datetime created_at
+    }
+
+    CATEGORIES {
+        bigint id PK
+        string name UK
+        string description
+        boolean is_active
+    }
+
+    PRIORITIES {
+        bigint id PK
+        string name UK "LOW | MEDIUM | HIGH | CRITICAL"
+        tinyint level UK "mayor = más urgente"
+        int sla_hours
+    }
+
+    TICKETS {
+        bigint id PK
+        string title
+        text description
+        enum status "OPEN … CLOSED"
+        bigint category_id FK
+        bigint priority_id FK
+        bigint created_by FK
+        bigint assigned_to FK "nullable"
+        text resolution "nullable"
+        datetime resolved_at "nullable"
+        datetime closed_at "nullable"
+        datetime created_at
+    }
+
+    COMMENTS {
+        bigint id PK
+        bigint ticket_id FK
+        bigint user_id FK
+        text body
+        string attachment_path "nullable"
+        datetime created_at
+    }
+
+    TICKET_STATUS_HISTORIES {
+        bigint id PK
+        bigint ticket_id FK
+        bigint user_id FK "quién hizo el cambio"
+        enum from_status "nullable"
+        enum to_status
+        bigint assigned_to FK "nullable"
+        text justification
+        datetime created_at
+    }
+
+    NOTIFICATIONS {
+        uuid id PK
+        string notifiable_type
+        bigint notifiable_id
+        json data
+        datetime read_at
+    }
+
+    USERS ||--o{ TICKETS : "crea (created_by)"
+    USERS |o--o{ TICKETS : "atiende (assigned_to)"
+    CATEGORIES ||--o{ TICKETS : clasifica
+    PRIORITIES ||--o{ TICKETS : prioriza
+    TICKETS ||--o{ COMMENTS : tiene
+    USERS ||--o{ COMMENTS : escribe
+    TICKETS ||--o{ TICKET_STATUS_HISTORIES : audita
+    USERS ||--o{ TICKET_STATUS_HISTORIES : ejecuta
+    USERS ||--o{ NOTIFICATIONS : recibe

@@ -1,0 +1,56 @@
+flowchart TB
+    U(["👤 Usuario (navegador)"])
+
+    subgraph NET["red bridge · antibugs"]
+        direction TB
+
+        subgraph APP["Stack principal · docker compose up -d"]
+            FE["<b>frontend</b><br/>nginx:1.27-alpine<br/>build de React<br/>:80"]
+            BE["<b>backend</b><br/>FrankenPHP + Laravel 13<br/>migra y siembra al arrancar<br/>:8000"]
+            QW["<b>queue</b><br/>misma imagen<br/>php artisan queue:work"]
+            MY[("<b>mysql</b><br/>mysql:8.4<br/>:3306")]
+            RD[("<b>redis</b><br/>redis:7-alpine<br/>:6379")]
+        end
+
+        subgraph OBS["Perfil observability · --profile observability"]
+            PR["<b>prometheus</b><br/>:9090<br/>scrape + alertas"]
+            LK["<b>loki</b><br/>:3100"]
+            PT["<b>promtail</b><br/>lee stdout de los contenedores"]
+            GF["<b>grafana</b><br/>:3000<br/>dashboard provisionado"]
+        end
+    end
+
+    subgraph VOL["Volúmenes persistentes"]
+        V1[/mysql_data/]
+        V2[/redis_data/]
+        V3[/backend_storage<br/>adjuntos/]
+        V4[/grafana_data · prometheus_data · loki_data/]
+    end
+
+    U -- ":80" --> FE
+    FE -- "proxy /api, /storage" --> BE
+    BE -- "PDO" --> MY
+    BE -- "caché · colas · JWT blacklist" --> RD
+    QW -- "consume jobs" --> RD
+    QW -- "PDO" --> MY
+
+    PR -- "GET /metrics cada 15 s" --> BE
+    PT -. "docker.sock" .-> APP
+    PT -- "push" --> LK
+    GF --> PR
+    GF --> LK
+
+    MY --- V1
+    RD --- V2
+    BE --- V3
+    QW --- V3
+    OBS --- V4
+
+    classDef app fill:#dbeafe,stroke:#2563eb,color:#0f172a;
+    classDef data fill:#fef3c7,stroke:#d97706,color:#0f172a;
+    classDef obs fill:#f3e8ff,stroke:#7c3aed,color:#0f172a;
+    classDef vol fill:#f1f5f9,stroke:#94a3b8,color:#0f172a;
+    class FE,BE,QW app;
+    class MY,RD data;
+    class PR,LK,PT,GF obs;
+    class V1,V2,V3,V4 vol;

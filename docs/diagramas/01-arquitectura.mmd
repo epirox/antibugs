@@ -1,0 +1,46 @@
+flowchart TB
+    subgraph CLIENTE["Capa de presentación"]
+        direction LR
+        SPA["React 19 + TypeScript<br/>(Vite)"]
+        NGINX["NGINX :80<br/>sirve la SPA<br/>proxy /api → backend"]
+        SPA --- NGINX
+    end
+
+    subgraph BACKEND["Capa de backend · Laravel 13 (FrankenPHP :8000)"]
+        direction LR
+        MW["Middleware<br/>AssignTraceId · auth:api (JWT) · role"]
+        CTRL["Controllers<br/><i>gateway HTTP: validan y delegan</i>"]
+        REQ["FormRequests<br/>validación de entrada"]
+        DTO["DTOs<br/>CreateTicketData · ChangeTicketStatusData"]
+        SVC["Services<br/>TicketService · <b>TicketStateMachine</b>"]
+        POL["Policies<br/>TicketPolicy"]
+        REPO["Repositories (interfaces)<br/>TicketRepository · TaxonomyRepository"]
+        ELO["Eloquent ORM"]
+        NOTIF["Notifications<br/>(cola)"]
+
+        MW --> CTRL
+        REQ -.-> CTRL
+        CTRL --> DTO --> SVC
+        CTRL -.-> POL
+        SVC --> REPO --> ELO
+        SVC --> NOTIF
+    end
+
+    subgraph PERSISTENCIA["Capa de persistencia y caché"]
+        direction LR
+        MYSQL[("MySQL 8.4<br/>datos persistentes")]
+        REDIS[("Redis 7<br/>caché · colas · blacklist JWT")]
+    end
+
+    NGINX -- "HTTPS / JSON<br/>Authorization: Bearer JWT" --> MW
+    ELO --> MYSQL
+    REPO -- "lecturas frecuentes<br/>(taxonomía)" --> REDIS
+    NOTIF -- "jobs" --> REDIS
+    MW -- "blacklist de tokens" --> REDIS
+
+    classDef capa fill:#f8fafc,stroke:#94a3b8,stroke-width:1px,color:#0f172a;
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#0f172a;
+    classDef db fill:#fef3c7,stroke:#d97706,color:#0f172a;
+    class SPA,NGINX,MW,CTRL,REQ,DTO,POL,REPO,ELO,NOTIF capa;
+    class SVC core;
+    class MYSQL,REDIS db;
