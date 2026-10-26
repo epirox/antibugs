@@ -9,5 +9,6 @@
 | 4 | [Estadísticas y gráficos](./04-estadisticas.md) | CU-A03: KPIs, los cinco gráficos (qué muestran y cómo se calculan), exportación CSV y datos de demostración. |
 | 5 | [Observabilidad y monitoreo](./05-observabilidad.md) | Prometheus + Grafana + Loki: logs JSON con `trace_id`, métricas, dashboard provisionado, alertas y el procedimiento de diagnóstico del escenario de fallo. |
 | 6 | [Diagramas](./06-diagramas.md) | Siete diagramas Mermaid (arquitectura, secuencia, máquina de estados, ER, Compose, CI/CD, observabilidad) con sus [PNG listos para pegar](./diagramas/). |
+| 7 | [Guion de la presentación](./07-presentacion.md) | 20 diapositivas con contenido, figura y la pregunta "¿por qué?" de cada una, reparto por integrante con tiempos, guion de la demo y checklist. [Capturas de pantalla](./capturas/). |
 
 Para la puesta en marcha (Docker, desarrollo local, cuentas demo) ver el [README principal](../README.md).
