@@ -4,6 +4,8 @@
 
 Plataforma para centralizar el ciclo de vida del soporte técnico con roles (Usuario / Técnico / Administrador), máquina de estados auditada y notificaciones. Trabajo Práctico Final — Programación de Vanguardia 2026.
 
+📚 **Documentación:** [Diseño del sistema](docs/01-diseno-del-sistema.md) · [Casos de prueba](docs/02-casos-de-prueba.md) · [Gestión de usuarios](docs/03-gestion-de-usuarios.md) · [Estadísticas y gráficos](docs/04-estadisticas.md)
+
 ## Stack
 
 | Capa | Tecnología | Puerto |
